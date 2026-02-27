@@ -90,9 +90,13 @@ if sys.platform == 'win32':
         print(f"    {_d}")
 
 # ============ 全域設定 ============
-MODEL_PT      = "yolo11n.pt"
+MODEL_PT      = "yolo11n.pt"       # COCO 80 類物件偵測
 MODEL_ONNX    = "yolo11n.onnx"
 MODEL_ENGINE  = "yolo11n.engine"
+
+MODEL_SEG_PT     = "yolo11n-seg.pt"   # COCO 80 類實例分割
+MODEL_SEG_ONNX   = "yolo11n-seg.onnx"
+MODEL_SEG_ENGINE = "yolo11n-seg.engine"
 
 IMGSZ         = 640            # 推理圖片尺寸
 CONF_THRESH   = 0.5            # 信心度閾值
@@ -143,13 +147,14 @@ print(f"  class 0  : {pt_model.names[0]}")   # person
 
 
 # =====================================================================
-# %% [Phase 2-A] PyTorch 基礎推理（Baseline）
+# %% [Phase 2-A] PyTorch 基礎推理 - 多類別物件偵測（Baseline）
 """
-Phase 2-A - PyTorch 原始推理
------------------------------
-以 .pt 模型進行推理，記錄推理速度作為後續加速的基準線。
+Phase 2-A - PyTorch 多類別物件偵測
+------------------------------------
+以 yolo11n.pt 進行 COCO 80 類全類別偵測，記錄速度作為後續加速基準線。
 
-classes=[0] 僅偵測行人（COCO person）。
+此 phase 不過濾類別（classes=None），偵測所有 80 類。
+人物專屬偵測（classes=[0]）請見 Phase 2-A-Person。
 
 SOURCE 可替換為:
   TEST_IMAGE          -> 使用 ultralytics 內建測試圖 (bus.jpg)
@@ -159,7 +164,7 @@ SOURCE 可替換為:
 """
 
 print("\n" + "=" * 60)
-print("Phase 2-A : PyTorch 推理（Baseline）")
+print("Phase 2-A : PyTorch 多類別偵測（COCO 80 類）")
 print("=" * 60)
 
 SOURCE = TEST_IMAGE   # <-- 可改為攝影機 0 或影片路徑
@@ -168,7 +173,7 @@ SOURCE = TEST_IMAGE   # <-- 可改為攝影機 0 或影片路徑
 print(f"  Warmup {WARMUP_RUNS} runs ...")
 for _ in range(WARMUP_RUNS):
     pt_model.predict(
-        SOURCE, classes=PERSON_ONLY, conf=CONF_THRESH,
+        SOURCE, conf=CONF_THRESH,
         imgsz=IMGSZ, device=DEVICE, verbose=False
     )
 
@@ -177,7 +182,7 @@ pre_lst, inf_lst, post_lst = [], [], []
 print(f"  Measuring {MEASURE_RUNS} runs ...")
 for _ in range(MEASURE_RUNS):
     res = pt_model.predict(
-        SOURCE, classes=PERSON_ONLY, conf=CONF_THRESH,
+        SOURCE, conf=CONF_THRESH,
         imgsz=IMGSZ, device=DEVICE, verbose=False
     )
     spd = res[0].speed   # {'preprocess': ms, 'inference': ms, 'postprocess': ms}
@@ -185,25 +190,29 @@ for _ in range(MEASURE_RUNS):
     inf_lst.append(spd['inference'])
     post_lst.append(spd['postprocess'])
 
-BENCH['PyTorch PT'] = {
+BENCH['Det PT (80cls)'] = {
     'pre' : float(np.mean(pre_lst)),
     'inf' : float(np.mean(inf_lst)),
     'post': float(np.mean(post_lst)),
 }
-_total = sum(BENCH['PyTorch PT'].values())
-print(f"  Pre={BENCH['PyTorch PT']['pre']:.1f}ms  "
-      f"Inf={BENCH['PyTorch PT']['inf']:.1f}ms  "
-      f"Post={BENCH['PyTorch PT']['post']:.1f}ms  "
+_total = sum(BENCH['Det PT (80cls)'].values())
+print(f"  Pre={BENCH['Det PT (80cls)']['pre']:.1f}ms  "
+      f"Inf={BENCH['Det PT (80cls)']['inf']:.1f}ms  "
+      f"Post={BENCH['Det PT (80cls)']['post']:.1f}ms  "
       f"Total={_total:.1f}ms  FPS={1000 / _total:.1f}")
 
-# 顯示偵測結果
+# 顯示偵測結果（全類別）
+_res_pt = pt_model.predict(
+    SOURCE, conf=CONF_THRESH,
+    imgsz=IMGSZ, device=DEVICE, verbose=False
+)
+print(f"  偵測到 {len(_res_pt[0].boxes)} 個物件（全類別）")
+for _b in _res_pt[0].boxes:
+    _cid = int(_b.cls)
+    print(f"    {pt_model.names[_cid]}  score={float(_b.conf):.3f}")
 if SHOW_DISPLAY:
-    _res_pt = pt_model.predict(
-        SOURCE, classes=PERSON_ONLY, conf=CONF_THRESH,
-        imgsz=IMGSZ, device=DEVICE, verbose=False
-    )
     _annotated = _res_pt[0].plot()
-    cv2.imshow("Phase 2-A : PyTorch Detection", _annotated)
+    cv2.imshow("Phase 2-A : PyTorch Detection (All Classes)", _annotated)
     print("  按任意鍵關閉視窗 ...")
     cv2.waitKey(0)
     cv2.destroyAllWindows()
@@ -248,6 +257,38 @@ if RUN_CAMERA:
         cv2.destroyAllWindows()
 else:
     print("  [Phase 2-A Camera] 略過（RUN_CAMERA=False）")
+
+
+# =====================================================================
+# %% [Phase 2-A-Person] 人物專屬偵測（COCO class 0 = person）
+"""
+Phase 2-A-Person - 人物偵測
+-----------------------------
+使用同一個 yolo11n.pt，透過 classes=[0] 只輸出 person 類別。
+不需要額外下載模型，NMS 前已在模型端過濾，速度與全類別相近。
+
+應用場景: 人流統計、行人安全警示、門禁偵測。
+"""
+
+print("\n" + "=" * 60)
+print("Phase 2-A-Person : 人物偵測（COCO class 0）")
+print("=" * 60)
+
+_person_res = pt_model.predict(
+    SOURCE, classes=PERSON_ONLY, conf=CONF_THRESH,
+    imgsz=IMGSZ, device=DEVICE, verbose=False
+)
+print(f"  偵測到 {len(_person_res[0].boxes)} 個 person")
+for _b in _person_res[0].boxes:
+    print(f"    score={float(_b.conf):.3f}  "
+          f"box={[round(x) for x in _b.xyxy[0].tolist()]}")
+
+if SHOW_DISPLAY:
+    _annotated_person = _person_res[0].plot()
+    cv2.imshow("Phase 2-A-Person : Person Detection", _annotated_person)
+    print("  按任意鍵關閉視窗 ...")
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
 # =====================================================================
@@ -539,6 +580,101 @@ if _ORT_AVAILABLE:
 
 
 # =====================================================================
+# %% [Phase 2-E] 實例分割：yolo11n-seg.pt（Instance Segmentation）
+"""
+Phase 2-E - Instance Segmentation
+------------------------------------
+使用 yolo11n-seg 模型進行實例分割，輸出 pixel-level mask。
+ultralytics 會自動從 CDN 下載 yolo11n-seg.pt（約 6.7 MB）。
+
+yolo11n-seg 輸出頭（vs Detection）:
+  偵測頭 : [1, 116, 8400]  - 4(bbox) + 80(cls) + 32(mask_coeff)
+  Mask 頭 : [1, 32, 160, 160] - mask prototype
+  vs. Detection: [1, 84, 8400]  - 4(bbox) + 80(cls)
+
+TensorRT export 與 Detection 相同，使用 format='engine', half=True。
+.engine 同樣必須在目標機器上本機 build，不可跨平台複製。
+"""
+
+print("\n" + "=" * 60)
+print("Phase 2-E : Instance Segmentation（yolo11n-seg）")
+print("=" * 60)
+
+seg_model = YOLO(MODEL_SEG_PT)
+seg_param_count = sum(p.numel() for p in seg_model.model.parameters())
+print(f"  模型檔   : {MODEL_SEG_PT}")
+print(f"  參數量   : {seg_param_count:,}")
+print(f"  類別數   : {len(seg_model.names)}")
+print(f"  任務類型 : {seg_model.task}")
+
+# 全類別實例分割
+print(f"\n  推理（全類別分割）...")
+_seg_res_all = seg_model.predict(
+    TEST_IMAGE, conf=CONF_THRESH,
+    imgsz=IMGSZ, device=DEVICE, verbose=False
+)
+print(f"  偵測到 {len(_seg_res_all[0].boxes)} 個物件（含 mask）")
+for _i, _b in enumerate(_seg_res_all[0].boxes):
+    _cid = int(_b.cls)
+    print(f"    [{_i}] {seg_model.names[_cid]}  score={float(_b.conf):.3f}")
+
+if SHOW_DISPLAY:
+    _seg_annotated = _seg_res_all[0].plot()
+    cv2.imshow("Phase 2-E : Segmentation (All Classes)", _seg_annotated)
+    print("  按任意鍵關閉視窗 ...")
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+# 人物實例分割（classes=[0]）
+print(f"\n  推理（人物分割，classes=[0]）...")
+_seg_res_person = seg_model.predict(
+    TEST_IMAGE, classes=PERSON_ONLY, conf=CONF_THRESH,
+    imgsz=IMGSZ, device=DEVICE, verbose=False
+)
+print(f"  偵測到 {len(_seg_res_person[0].boxes)} 個 person（含 mask）")
+
+if SHOW_DISPLAY:
+    _seg_person_annotated = _seg_res_person[0].plot()
+    cv2.imshow("Phase 2-E : Segmentation (Person Only)", _seg_person_annotated)
+    print("  按任意鍵關閉視窗 ...")
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+# 速度 Benchmark
+print(f"\n  Seg Benchmark ({WARMUP_RUNS} warmup / {MEASURE_RUNS} measure)...")
+for _ in range(WARMUP_RUNS):
+    seg_model.predict(TEST_IMAGE, conf=CONF_THRESH,
+                      imgsz=IMGSZ, device=DEVICE, verbose=False)
+_pre_s, _inf_s, _post_s = [], [], []
+for _ in range(MEASURE_RUNS):
+    _r = seg_model.predict(TEST_IMAGE, conf=CONF_THRESH,
+                           imgsz=IMGSZ, device=DEVICE, verbose=False)
+    _spd = _r[0].speed
+    _pre_s.append(_spd['preprocess'])
+    _inf_s.append(_spd['inference'])
+    _post_s.append(_spd['postprocess'])
+
+BENCH['Seg PT (80cls)'] = {
+    'pre' : float(np.mean(_pre_s)),
+    'inf' : float(np.mean(_inf_s)),
+    'post': float(np.mean(_post_s)),
+}
+_t = sum(BENCH['Seg PT (80cls)'].values())
+print(f"  Pre={BENCH['Seg PT (80cls)']['pre']:.1f}ms  "
+      f"Inf={BENCH['Seg PT (80cls)']['inf']:.1f}ms  "
+      f"Post={BENCH['Seg PT (80cls)']['post']:.1f}ms  "
+      f"Total={_t:.1f}ms  FPS={1000 / _t:.1f}")
+
+# ONNX 匯出（可攜式中間格式）
+print(f"\n  匯出 ONNX: {MODEL_SEG_ONNX}")
+if not Path(MODEL_SEG_ONNX).exists():
+    seg_model.export(format='onnx', imgsz=IMGSZ, simplify=True, device=DEVICE)
+    print(f"  已輸出 {MODEL_SEG_ONNX}")
+else:
+    print(f"  {MODEL_SEG_ONNX} 已存在，跳過")
+
+
+# =====================================================================
 # %% [Phase 3-A] 匯出 TensorRT Engine（必須在目標機器上執行！）
 """
 Phase 3-A - TensorRT Engine 匯出
@@ -809,3 +945,5 @@ print(f"    cap = cv2.VideoCapture({_gst}, cv2.CAP_GSTREAMER)")
 print()
 print("  完成設定後，在 Jetson 上重新執行 Phase 3-A 以 build TensorRT engine")
 print("  Phase 3-A build 完成後的 .engine 只能在 Jetson 上使用，無法複製到 Windows")
+
+# %%

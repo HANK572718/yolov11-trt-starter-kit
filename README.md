@@ -4,6 +4,21 @@ YOLOv11n 從 PyTorch 到 TensorRT FP16 的完整最佳化流程示範，目標�
 
 ---
 
+## 支援模型類型
+
+> 三種 COCO 預訓練模型，開箱即用，ultralytics 自動下載。
+
+| 類型 | 模型檔 | 大小 | 用途 | Script Phase |
+|------|--------|------|------|-------------|
+| 多類別物件偵測 | `yolo11n.pt` | ~5.6 MB | COCO 80 類全類別偵測 | Phase 2-A |
+| 人物偵測 | `yolo11n.pt` (classes=[0]) | — | 同上模型，過濾 person 類 | Phase 2-A-Person |
+| 實例分割 | `yolo11n-seg.pt` | ~6.7 MB | COCO 80 類 + pixel mask | Phase 2-E |
+
+- 多類別偵測與人物偵測共用同一個 `.pt`，不需額外下載
+- 三種任務均可匯出 ONNX（跨平台）與 TensorRT `.engine`（需本機 build）
+
+---
+
 ## 檔案說明
 
 | 檔案 | 說明 |
