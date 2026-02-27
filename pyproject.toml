@@ -3,8 +3,10 @@ name = "openvino-notebooks"
 version = "0.1.0"
 description = ""
 authors = [{ name = "Hank", email = "Engalpha@node-health.com" }]
-readme = "README.md"
 requires-python = ">3.11.0,<3.13"
+
+[tool.poetry]
+package-mode = false
 # dependencies = ["nncf (>=2.16.0)", "openvino (>=2025.1.0)", "labelimg (>=1.8.6,<2.0.0)"]
 
 [tool.poetry.dependencies]
