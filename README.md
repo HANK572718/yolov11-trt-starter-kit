@@ -110,6 +110,132 @@ poetry run python yolov11_tensorrt_jetson.py
 
 ---
 
+## YOLOv8 / YOLO11 切換與預訓練模型說明
+
+### 命名規則與切換方式
+
+兩個版本檔名格式**不同**，不是單純替換字串：
+
+| 版本 | 偵測 | 分割 | 姿態 |
+|------|------|------|------|
+| YOLO**v8** | `yolov8n.pt` | `yolov8n-seg.pt` | `yolov8n-pose.pt` |
+| YOLO**11** | `yolo11n.pt` | `yolo11n-seg.pt` | `yolo11n-pose.pt` |
+
+> YOLO11 檔名無 `v`；YOLOv8 有 `v`。切換時只改腳本頭部 6 個常數即可，其餘程式碼完全不動。
+
+```python
+# 切換至 YOLOv8
+MODEL_PT         = "yolov8n.pt"
+MODEL_ONNX       = "yolov8n.onnx"
+MODEL_ENGINE     = "yolov8n.engine"
+MODEL_SEG_PT     = "yolov8n-seg.pt"
+MODEL_SEG_ONNX   = "yolov8n-seg.onnx"
+MODEL_SEG_ENGINE = "yolov8n-seg.engine"
+```
+
+### Ultralytics 版本相容性
+
+`ultralytics==8.4.7` 同時支援 v8 與 v11，**不需升降版**：
+
+```python
+from ultralytics import YOLO
+YOLO("yolov8n.pt")   # v8
+YOLO("yolo11n.pt")   # v11，同一個 class，同一套 API
+```
+
+### 為什麼建議維持 YOLO11？
+
+| 指標 | YOLOv8n | YOLO11n |
+|------|---------|---------|
+| 參數量 | 3.2M | 2.6M（少 19%） |
+| COCO mAP | 37.3 | 39.5（高 2.2） |
+| 模型大小 | ~6.3 MB | ~5.6 MB |
+
+除非需要與舊系統相容，否則維持 YOLO11。
+
+### 預訓練模型下載說明
+
+#### 方式 A：Ultralytics 自動下載（推薦）
+
+```python
+from ultralytics import YOLO
+model = YOLO("yolo11n.pt")   # 第一次執行自動下載，後續從快取載入
+```
+
+快取位置：
+- Windows：`C:\Users\<user>\.config\Ultralytics\`
+- Linux / Jetson：`~/.config/Ultralytics/`
+
+#### 方式 B：程式內批次下載（離線環境預先準備）
+
+```python
+from ultralytics.utils.downloads import attempt_download_asset
+
+for name in ["yolo11n.pt", "yolo11n-seg.pt"]:
+    attempt_download_asset(name)
+```
+
+#### 方式 C：GitHub 手動下載
+
+下載頁面：`https://github.com/ultralytics/assets/releases`
+
+**物件偵測（Detection）**
+
+| 模型 | 大小 | mAP | 速度(T4 ms) |
+|------|------|-----|------------|
+| `yolo11n.pt` | 5.6 MB | 39.5 | 1.5 |
+| `yolo11s.pt` | 19.8 MB | 47.0 | 2.5 |
+| `yolo11m.pt` | 67.6 MB | 51.5 | 5.0 |
+| `yolo11l.pt` | 87.0 MB | 53.4 | 6.2 |
+| `yolo11x.pt` | 136.7 MB | 54.7 | 11.3 |
+
+**實例分割（Segmentation）**
+
+| 模型 | 大小 | Box mAP | Mask mAP |
+|------|------|---------|---------|
+| `yolo11n-seg.pt` | 6.7 MB | 38.9 | 32.0 |
+| `yolo11s-seg.pt` | 21.4 MB | 46.6 | 38.8 |
+| `yolo11m-seg.pt` | 70.2 MB | 51.5 | 42.0 |
+| `yolo11l-seg.pt` | 90.4 MB | 53.4 | 43.2 |
+| `yolo11x-seg.pt` | 140.7 MB | 54.7 | 44.0 |
+
+### Jetson 離線環境的建議流程
+
+```
+Windows（有網路）              Jetson（無網路）
+─────────────────              ────────────────
+1. 自動下載 .pt                scp .pt 到 Jetson
+2. 匯出 .onnx                 scp .onnx 到 Jetson（可選）
+3. 不要複製 .engine            在 Jetson 本機 build .engine
+```
+
+```bash
+scp yolo11n.pt user@jetson-ip:/home/user/
+scp yolo11n-seg.pt user@jetson-ip:/home/user/
+scp yolo11n.onnx user@jetson-ip:/home/user/
+```
+
+### 模型選擇建議
+
+| 需求 | 建議模型 |
+|------|---------|
+| 一般多類別偵測 | `yolo11n.pt` |
+| 人物偵測 | `yolo11n.pt` + `classes=[0]`（不需額外下載） |
+| 實例分割 | `yolo11n-seg.pt` |
+| Jetson / 嵌入式優先速度 | `yolo11n` 系列（nano） |
+| 需要較高精度 | `yolo11s` 或 `yolo11m` |
+
+### 後處理程式碼相容性
+
+v8 與 v11 輸出 tensor 格式完全相同，`tensorrt_postprocess_example.py` **無需修改**直接適用：
+
+```
+Detection    輸出: [1, 84, 8400]                          # 4(bbox) + 80(cls)
+Segmentation 輸出: [1, 116, 8400] + [1, 32, 160, 160]    # +32(mask_coeff) + prototype
+```
+
+---
+
 ## 開發環境
 
 詳見 `hank_laptop_env.md`。
