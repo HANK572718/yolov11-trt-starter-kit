@@ -11,9 +11,33 @@ Usage:
 """
 
 import argparse
+import os
 from pathlib import Path
 
 from ultralytics import YOLO
+
+
+def setup_wandb() -> bool:
+    """Check if wandb is installed and logged in; disable silently if not.
+
+    Reads the stored API key (no network call). If unavailable, sets
+    WANDB_MODE=disabled so ultralytics skips the integration entirely.
+
+    Returns:
+        bool: True if wandb is active, False if disabled.
+    """
+    try:
+        import wandb  # noqa: F401
+
+        api_key = wandb.api.api_key  # None when not logged in
+        if not api_key:
+            raise RuntimeError("wandb not logged in")
+        print("[wandb] available and logged in — logging enabled")
+        return True
+    except Exception:
+        os.environ["WANDB_MODE"] = "disabled"
+        print("[wandb] not available or not logged in — skipping")
+        return False
 
 
 DATASET_YAML = Path(__file__).parent / "dataset_yolo_format" / "dataset.yaml"
@@ -73,6 +97,8 @@ def main() -> None:
     Returns:
         None
     """
+    setup_wandb()
+
     parser = argparse.ArgumentParser(description="Train YOLOv11 s/m on custom dataset")
     parser.add_argument(
         "--model",

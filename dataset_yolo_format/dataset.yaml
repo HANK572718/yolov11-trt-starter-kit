@@ -1,0 +1,8 @@
+path: D:/docs/openvino_notebooks/yolov11_trt_starter_kit/dataset_yolo_format
+train: images/train
+val: images/val
+test:
+
+names:
+    0: device
+    1: connector
