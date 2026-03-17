@@ -45,3 +45,12 @@ desktop.ini
 
 # Logs
 *.log
+
+# Claude Code local settings
+.claude/
+
+# Dataset (large binary files, manage separately)
+dataset_yolo_format/
+
+# YOLO cache files
+*.cache
