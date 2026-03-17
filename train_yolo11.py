@@ -23,7 +23,46 @@ import shutil
 import sys
 from pathlib import Path
 
+import psutil
+
 from ultralytics import YOLO
+
+
+# ---------------------------------------------------------------------------
+# System resource probe → auto workers
+# ---------------------------------------------------------------------------
+
+def resolve_workers() -> int:
+    """Probe available RAM + paging file and return a safe DataLoader workers count.
+
+    Windows spawns one subprocess per worker; each imports cv2/torch, which is
+    heavy on virtual memory. When the system is already loaded the paging file
+    can be exhausted, causing a DLL load failure. This function caps workers
+    conservatively based on current free virtual memory.
+
+    Thresholds (free RAM + free swap):
+        < 4 GB  → 0  (in-process, safest)
+        < 8 GB  → 2
+        ≥ 8 GB  → 4  (also capped at cpu_count // 2)
+    """
+    vm   = psutil.virtual_memory()
+    swap = psutil.swap_memory()
+    free_gb = (vm.available + swap.free) / (1024 ** 3)
+    cpu_cap = max(1, (os.cpu_count() or 4) // 2)
+
+    if free_gb < 4:
+        workers = 0
+    elif free_gb < 8:
+        workers = 2
+    else:
+        workers = min(4, cpu_cap)
+
+    print(
+        f"[INFO] System probe — free virtual memory: {free_gb:.1f} GB "
+        f"(RAM {vm.available / (1024**3):.1f} GB + swap {swap.free / (1024**3):.1f} GB) "
+        f"→ workers={workers}"
+    )
+    return workers
 
 
 # ---------------------------------------------------------------------------
@@ -279,7 +318,7 @@ def train(
         name=cfg["name"],
         patience=10,
         save_period=10,
-        workers=4,
+        workers=resolve_workers(),
         cos_lr=True,
         augment=True,
         cache=False,
