@@ -393,9 +393,15 @@ def main() -> None:
     # --- wandb setup ---
     use_wandb = not args.no_wandb
     if use_wandb:
+        from ultralytics import settings as ult_settings
+        if not ult_settings.get("wandb"):
+            ult_settings.update({"wandb": True})
+            print("[INFO] ultralytics settings: wandb 已自動啟用")
         print("[INFO] wandb 追蹤已啟用，若未登入請執行 wandb login")
     else:
         os.environ["WANDB_DISABLED"] = "true"
+        from ultralytics import settings as ult_settings
+        ult_settings.update({"wandb": False})
         print("[INFO] wandb 已停用 (--no-wandb)")
 
     # --- Resolve source path ---
