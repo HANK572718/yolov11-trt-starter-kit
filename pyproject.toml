@@ -1,5 +1,5 @@
 [project]
-name = "openvino-notebooks"
+name = "yolov11-trt-starter-kit"
 version = "0.1.0"
 description = ""
 authors = [{ name = "Hank", email = "Engalpha@node-health.com" }]
@@ -89,27 +89,12 @@ transformers = "^4.57.6"
 tensorrt = "^10.15.1.29"
 
 [tool.poetry.group.windows.dependencies]
-# Windows 專用依賴
-torch = { url = "https://download.pytorch.org/whl/cu124/torch-2.4.1%2Bcu124-cp311-cp311-win_amd64.whl#sha256=b0b3a904bc66cd6f54652d33b8509b5c64b862763c073a15cf740161c77debbc" }
-torchvision = { url = "https://download.pytorch.org/whl/cu124/torchvision-0.19.1%2Bcu124-cp311-cp311-win_amd64.whl" }
-torchaudio = { url = "https://download.pytorch.org/whl/cu124/torchaudio-2.4.1%2Bcu124-cp311-cp311-win_amd64.whl#sha256=9be91e449abfa76cde0c5e1a4fb91200668eb4fa9177daa131bf335e8f13092a" }
+# Windows 專用依賴 — PyTorch 2.7.0+cu128 (支援 RTX 5070 Ti / Blackwell sm_120)
+torch = { url = "https://download.pytorch.org/whl/cu128/torch-2.7.0%2Bcu128-cp311-cp311-win_amd64.whl#sha256=bf88f647d76d79da9556ca55df49e45aff1d66c12797886364343179dd09a36c" }
+torchaudio = { url = "https://download.pytorch.org/whl/cu128/torchaudio-2.7.0%2Bcu128-cp311-cp311-win_amd64.whl#sha256=f6c6c2c3a74225225b5d823db7e3910b581b3bb5fac891c0e7bf3549fb5d55b6" }
+torchvision = { url = "https://download.pytorch.org/whl/cu128/torchvision-0.22.0%2Bcu128-cp311-cp311-win_amd64.whl#sha256=f5dae1307c34813425c0b753530c035e1cc72af0bded395d1ba64dcb2872889f" }
 PyQt5 = { url = "https://files.pythonhosted.org/packages/ca/ac/596e8ca16fd0634542d874c0d79219fc527ea7de73a5000092f60ecbf6e9/PyQt5-5.15.10-cp37-abi3-win_amd64.whl" }
 PyQt5-Qt5 = { url = "https://files.pythonhosted.org/packages/py3/P/PyQt5_Qt5/PyQt5_Qt5-5.15.2-py3-none-win_amd64.whl" }
-# Detectron2 預編譯 wheel (第三方維護，支援 Windows)
-# PyTorch 2.4.0 + CUDA 12.1 + Python 3.11 + Windows
-detectron2 = { url = "https://github.com/MiroPsota/torch_packages_builder/releases/download/detectron2-0.6%2Bfd27788/detectron2-0.6%2Bfd27788pt2.4.0cu121-cp311-cp311-win_amd64.whl" }
-
-
-
-# ## torch相關下載
-# # 這是給python3.11使用
-# # torch = { url = "https://download.pytorch.org/whl/cu124/torch-2.4.0%2Bcu124-cp311-cp311-win_amd64.whl#sha256=b1d40a13a6fd3f92aa5728ab84756571381b6b1ccae7ce62037c28d539687c25" }
-# # torchaudio = { url = "https://download.pytorch.org/whl/cu124/torchaudio-2.4.0%2Bcu124-cp311-cp311-win_amd64.whl#sha256=12f7f2b1c0fb435875175247083c8aca056face6bc5388b9a494a90ca197632c" }
-# # torchvision = { url = "https://download.pytorch.org/whl/cu124/torchvision-0.19.0%2Bcu124-cp311-cp311-win_amd64.whl#sha256=42ac55c0fd1cdea14c20168f0b24eba7fc2d2eb4ef75196ded7b76f81dee619f" }
-# # 這是給cpu使用
-# torch = "*"
-# torchaudio = "*"
-# torchvision = "*"
 
 
 # openvino = "^2024.3.0"

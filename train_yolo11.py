@@ -1,12 +1,16 @@
 """
 YOLOv11 Training Script for Object Detection.
 
-Trains yolo11s and yolo11m models on the local YOLO-format dataset.
+Trains yolo11n/s/m/l/x models on the local YOLO-format dataset.
 
 Usage:
     poetry run python train_yolo11.py
+    poetry run python train_yolo11.py --model n       # train only nano
     poetry run python train_yolo11.py --model s       # train only small
     poetry run python train_yolo11.py --model m       # train only medium
+    poetry run python train_yolo11.py --model l       # train only large
+    poetry run python train_yolo11.py --model x       # train only extra-large
+    poetry run python train_yolo11.py --model all     # train all 5 sizes
     poetry run python train_yolo11.py --epochs 100
 """
 
@@ -43,6 +47,10 @@ def setup_wandb() -> bool:
 DATASET_YAML = Path(__file__).parent / "dataset_yolo_format" / "dataset.yaml"
 
 TRAIN_CONFIGS = {
+    "n": {
+        "model": "yolo11n.pt",
+        "name": "yolo11n_custom",
+    },
     "s": {
         "model": "yolo11s.pt",
         "name": "yolo11s_custom",
@@ -51,22 +59,20 @@ TRAIN_CONFIGS = {
         "model": "yolo11m.pt",
         "name": "yolo11m_custom",
     },
+    "l": {
+        "model": "yolo11l.pt",
+        "name": "yolo11l_custom",
+    },
+    "x": {
+        "model": "yolo11x.pt",
+        "name": "yolo11x_custom",
+    },
 }
+
+ALL_SIZES = ["n", "s", "m", "l", "x"]
 
 
 def train(model_key: str, epochs: int, imgsz: int, batch: int, device: str) -> None:
-    """Train a single YOLO model variant.
-
-    Args:
-        model_key: Model size key, either 's' (small) or 'm' (medium).
-        epochs: Number of training epochs.
-        imgsz: Input image size (square).
-        batch: Batch size. Use -1 for AutoBatch.
-        device: Compute device, e.g. '0', 'cpu', or '0,1'.
-
-    Returns:
-        None
-    """
     cfg = TRAIN_CONFIGS[model_key]
     print(f"\n{'='*60}")
     print(f"Training: {cfg['model']}  |  epochs={epochs}  |  imgsz={imgsz}  |  batch={batch}")
@@ -80,13 +86,13 @@ def train(model_key: str, epochs: int, imgsz: int, batch: int, device: str) -> N
         batch=batch,
         device=device,
         name=cfg["name"],
-        patience=10,          # early stopping patience
-        save_period=10,       # save checkpoint every N epochs
+        patience=10,
+        save_period=10,
         workers=4,
-        cos_lr=True,          # cosine LR scheduler
+        cos_lr=True,
         augment=True,
-        cache=False,          # set True if RAM allows, speeds up training
-        exist_ok=True,        # allow overwriting existing run folder
+        cache=False,
+        exist_ok=True,
     )
     print(f"\nDone: {cfg['name']} — results saved to runs/detect/{cfg['name']}/\n")
 
@@ -99,12 +105,12 @@ def main() -> None:
     """
     setup_wandb()
 
-    parser = argparse.ArgumentParser(description="Train YOLOv11 s/m on custom dataset")
+    parser = argparse.ArgumentParser(description="Train YOLOv11 n/s/m/l/x on custom dataset")
     parser.add_argument(
         "--model",
-        choices=["s", "m", "both"],
-        default="both",
-        help="Which model size to train: s, m, or both (default: both)",
+        choices=["n", "s", "m", "l", "x", "all"],
+        default="all",
+        help="Which model size to train: n, s, m, l, x, or all (default: all)",
     )
     parser.add_argument("--epochs", type=int, default=100, help="Training epochs (default: 100)")
     parser.add_argument("--imgsz", type=int, default=640, help="Image size (default: 640)")
@@ -114,10 +120,10 @@ def main() -> None:
         default=-1,
         help="Batch size; -1 = AutoBatch (default: -1)",
     )
-    parser.add_argument("--device", type=str, default="0", help="CUDA device id or 'cpu' (default: 0)")
+    parser.add_argument("--device", type=str, default="0", help="Device: CUDA id '0' or 'cpu' (default: 0)")
     args = parser.parse_args()
 
-    targets = ["s", "m"] if args.model == "both" else [args.model]
+    targets = ALL_SIZES if args.model == "all" else [args.model]
     for key in targets:
         train(
             model_key=key,
@@ -127,7 +133,7 @@ def main() -> None:
             device=args.device,
         )
 
-    print("All training finished.")
+    print("\nAll training finished.")
     print("Best weights location:")
     for key in targets:
         name = TRAIN_CONFIGS[key]["name"]
