@@ -298,6 +298,7 @@ def train(
     batch: int,
     device: str,
     use_wandb: bool,
+    workers: int | None = None,
 ) -> None:
     configs = SEGMENT_CONFIGS if task == "segment" else DETECT_CONFIGS
     cfg = configs[model_key]
@@ -318,7 +319,7 @@ def train(
         name=cfg["name"],
         patience=10,
         save_period=10,
-        workers=resolve_workers(),
+        workers=workers if workers is not None else resolve_workers(),
         cos_lr=True,
         augment=True,
         cache=False,
@@ -377,6 +378,7 @@ def main() -> None:
     parser.add_argument("--imgsz",     type=int,   default=640,  help="Input image size (default: 640)")
     parser.add_argument("--batch",     type=int,   default=-1,   help="Batch size; -1=AutoBatch (default: -1)")
     parser.add_argument("--device",    type=str,   default="0",  help="CUDA device id or 'cpu' (default: 0)")
+    parser.add_argument("--workers",   type=int,   default=None, help="DataLoader workers; 0=main process only, None=auto (default: None)")
     parser.add_argument(
         "--val-split",
         type=float,
@@ -443,6 +445,7 @@ def main() -> None:
             batch=args.batch,
             device=args.device,
             use_wandb=use_wandb,
+            workers=args.workers,
         )
 
     print("\nAll training finished.")

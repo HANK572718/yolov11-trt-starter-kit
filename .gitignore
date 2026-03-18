@@ -50,7 +50,7 @@ desktop.ini
 .claude/
 
 # Dataset (large binary files, manage separately)
-dataset_yolo_format/
+dataset*/
 
 # YOLO cache files
 *.cache
