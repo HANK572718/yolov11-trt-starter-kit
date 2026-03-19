@@ -3,7 +3,7 @@ name = "yolov11-trt-starter-kit"
 version = "0.1.0"
 description = ""
 authors = [{ name = "Hank", email = "Engalpha@node-health.com" }]
-requires-python = ">3.11.0,<3.13"
+requires-python = ">=3.10,<3.11"
 
 [tool.poetry]
 package-mode = false
@@ -86,15 +86,44 @@ pydeps = "^3.0.1"
 vizplugins = "^0.1.3"
 ipdb = "^0.13.13"
 transformers = "^4.57.6"
-tensorrt = "^10.15.1.29"
+tensorrt-cu12 = "^10.15.1.29"  # cu12 for CUDA 12.x (cu13 會與 CUDA 12.8 不相容)
+
+# YOLOv11 支援 (使用 pip 直接安裝以繞過版本衝突)
+ultralytics = "^8.3"
+# nncf = ">=2.16.0"
+
+
+[tool.poetry.group.windows]
+optional = true
 
 [tool.poetry.group.windows.dependencies]
-# Windows 專用依賴 — PyTorch 2.7.0+cu128 (支援 RTX 5070 Ti / Blackwell sm_120)
-torch = { url = "https://download.pytorch.org/whl/cu128/torch-2.7.0%2Bcu128-cp311-cp311-win_amd64.whl#sha256=bf88f647d76d79da9556ca55df49e45aff1d66c12797886364343179dd09a36c" }
-torchaudio = { url = "https://download.pytorch.org/whl/cu128/torchaudio-2.7.0%2Bcu128-cp311-cp311-win_amd64.whl#sha256=f6c6c2c3a74225225b5d823db7e3910b581b3bb5fac891c0e7bf3549fb5d55b6" }
-torchvision = { url = "https://download.pytorch.org/whl/cu128/torchvision-0.22.0%2Bcu128-cp311-cp311-win_amd64.whl#sha256=f5dae1307c34813425c0b753530c035e1cc72af0bded395d1ba64dcb2872889f" }
+# Windows 專用依賴 — PyTorch 2.10.0+cu128 (cp310, win_amd64)
+# 安裝命令：poetry install --with windows
+torch = { url = "https://download.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp310-cp310-win_amd64.whl#sha256=14d2831b9292c3a9b0d80116451315a08ffe8db745d403d06000bc47165b1f9e" }
+torchaudio = { url = "https://download.pytorch.org/whl/cu128/torchaudio-2.10.0%2Bcu128-cp310-cp310-win_amd64.whl#sha256=4c4a5976ae4ca70ed2e99b92c56cf42630d34c2f71f0e021a4c6b917b375cea7" }
+torchvision = { url = "https://download.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp310-cp310-win_amd64.whl#sha256=cef372be1a78856000cd04b72e5d738a0d851022c68b6900cbbd61dc91c25f79" }
 PyQt5 = { url = "https://files.pythonhosted.org/packages/ca/ac/596e8ca16fd0634542d874c0d79219fc527ea7de73a5000092f60ecbf6e9/PyQt5-5.15.10-cp37-abi3-win_amd64.whl" }
 PyQt5-Qt5 = { url = "https://files.pythonhosted.org/packages/py3/P/PyQt5_Qt5/PyQt5_Qt5-5.15.2-py3-none-win_amd64.whl" }
+
+
+[tool.poetry.group.jetson]
+optional = true
+
+# ============================================================
+# Jetson Orin 安裝說明 (JetPack 6.1, Python 3.10, linux_aarch64)
+# ============================================================
+# 在 Jetson 上的使用步驟：
+#   1. 取消下方各行的 # 號
+#   2. 執行：poetry install --with jetson
+#   3. 在 Jetson 上執行 export（engine 檔不可跨裝置）：
+#      python -c "from ultralytics import YOLO; YOLO('model.pt').export(format='engine', half=True)"
+#
+# TensorRT engine 綁定目標裝置的 GPU 架構與 TRT 版本，不可從 x86 移植！
+# ============================================================
+[tool.poetry.group.jetson.dependencies]
+# torch = { url = "https://github.com/ultralytics/assets/releases/download/v0.0.0/torch-2.10.0-cp310-cp310-linux_aarch64.whl" }
+# torchvision = { url = "https://github.com/ultralytics/assets/releases/download/v0.0.0/torchvision-0.25.0-cp310-cp310-linux_aarch64.whl" }
+# onnxruntime-gpu = { url = "https://github.com/ultralytics/assets/releases/download/v0.0.0/onnxruntime_gpu-1.23.0-cp310-cp310-linux_aarch64.whl" }
 
 
 # openvino = "^2024.3.0"
@@ -117,7 +146,7 @@ PyQt5-Qt5 = { url = "https://files.pythonhosted.org/packages/py3/P/PyQt5_Qt5/PyQ
 # transformers = "^4.43.0"
 
 
-# ## 其他的安裝項目
+## 其他的安裝項目
 # # transformers-stream-generator = "^0.0.5"
 # # tiktoken = "^0.7.0"
 # # bitsandbytes = "^0.43.3"
@@ -129,13 +158,6 @@ PyQt5-Qt5 = { url = "https://files.pythonhosted.org/packages/py3/P/PyQt5_Qt5/PyQ
 # # langchain = "^0.2.3"
 # # wikipedia = "^1.4.0"
 # # accelerate = "^0.33.0"
-
-
-# YOLOv11 支援 (使用 pip 直接安裝以繞過版本衝突)
-ultralytics = "^8.3"
-# nncf = ">=2.16.0"
-
-
 
 
 [build-system]
