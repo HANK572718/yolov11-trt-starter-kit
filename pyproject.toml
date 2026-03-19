@@ -3,7 +3,7 @@ name = "yolov11-trt-starter-kit"
 version = "0.1.0"
 description = ""
 authors = [{ name = "Hank", email = "Engalpha@node-health.com" }]
-requires-python = ">=3.10,<3.11"
+requires-python = ">3.11.0,<3.13"
 
 [tool.poetry]
 package-mode = false
@@ -97,11 +97,11 @@ ultralytics = "^8.3"
 optional = true
 
 [tool.poetry.group.windows.dependencies]
-# Windows 專用依賴 — PyTorch 2.10.0+cu128 (cp310, win_amd64)
+# Windows 專用依賴 — PyTorch 2.7.0+cu128 (cp311, win_amd64)
 # 安裝命令：poetry install --with windows
-torch = { url = "https://download.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp310-cp310-win_amd64.whl#sha256=14d2831b9292c3a9b0d80116451315a08ffe8db745d403d06000bc47165b1f9e" }
-torchaudio = { url = "https://download.pytorch.org/whl/cu128/torchaudio-2.10.0%2Bcu128-cp310-cp310-win_amd64.whl#sha256=4c4a5976ae4ca70ed2e99b92c56cf42630d34c2f71f0e021a4c6b917b375cea7" }
-torchvision = { url = "https://download.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp310-cp310-win_amd64.whl#sha256=cef372be1a78856000cd04b72e5d738a0d851022c68b6900cbbd61dc91c25f79" }
+torch = { url = "https://download.pytorch.org/whl/cu128/torch-2.7.0%2Bcu128-cp311-cp311-win_amd64.whl#sha256=bf88f647d76d79da9556ca55df49e45aff1d66c12797886364343179dd09a36c" }
+torchaudio = { url = "https://download.pytorch.org/whl/cu128/torchaudio-2.7.0%2Bcu128-cp311-cp311-win_amd64.whl#sha256=f6c6c2c3a74225225b5d823db7e3910b581b3bb5fac891c0e7bf3549fb5d55b6" }
+torchvision = { url = "https://download.pytorch.org/whl/cu128/torchvision-0.22.0%2Bcu128-cp311-cp311-win_amd64.whl#sha256=f5dae1307c34813425c0b753530c035e1cc72af0bded395d1ba64dcb2872889f" }
 PyQt5 = { url = "https://files.pythonhosted.org/packages/ca/ac/596e8ca16fd0634542d874c0d79219fc527ea7de73a5000092f60ecbf6e9/PyQt5-5.15.10-cp37-abi3-win_amd64.whl" }
 PyQt5-Qt5 = { url = "https://files.pythonhosted.org/packages/py3/P/PyQt5_Qt5/PyQt5_Qt5-5.15.2-py3-none-win_amd64.whl" }
 
