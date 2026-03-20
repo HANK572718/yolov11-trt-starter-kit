@@ -299,6 +299,7 @@ def train(
     device: str,
     use_wandb: bool,
     workers: int | None = None,
+    amp: bool = True,
 ) -> None:
     configs = SEGMENT_CONFIGS if task == "segment" else DETECT_CONFIGS
     cfg = configs[model_key]
@@ -324,6 +325,7 @@ def train(
         augment=True,
         cache=False,
         exist_ok=True,
+        amp=amp,
     )
 
     if use_wandb:
@@ -390,6 +392,11 @@ def main() -> None:
         action="store_true",
         help="Disable wandb experiment tracking",
     )
+    parser.add_argument(
+        "--no-amp",
+        action="store_true",
+        help="Disable Automatic Mixed Precision (workaround for CUDA OOM during AMP check)",
+    )
     args = parser.parse_args()
 
     # --- wandb setup ---
@@ -446,6 +453,7 @@ def main() -> None:
             device=args.device,
             use_wandb=use_wandb,
             workers=args.workers,
+            amp=not args.no_amp,
         )
 
     print("\nAll training finished.")
